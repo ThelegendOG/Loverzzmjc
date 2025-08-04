@@ -1,25 +1,34 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
+import { Message, MessageEmbed, PermissionsBitField } from "discord.js";
 import { bot } from "../index";
-import { i18n } from "../utils/i18n";
 import { canModifyQueue } from "../utils/queue";
-import { safeReply } from "../utils/safeReply";
 
 export default {
-  data: new SlashCommandBuilder().setName("loop").setDescription(i18n.__("loop.description")),
-  execute(interaction: ChatInputCommandInteraction) {
-    const queue = bot.queues.get(interaction.guild!.id);
+  name: "loop",
+  description: "Toggles loop for the current song",
+  cooldown: 2,
+  permissions: [PermissionsBitField.Flags.Connect, PermissionsBitField.Flags.Speak],
 
-    const guildMemer = interaction.guild!.members.cache.get(interaction.user.id);
+  async execute(message: Message) {
+    const queue = bot.queues.get(message.guild!.id);
+    const member = message.guild!.members.cache.get(message.author.id);
 
-    if (!queue)
-      return interaction.reply({ content: i18n.__("loop.errorNotQueue"), ephemeral: true }).catch(console.error);
+    if (!queue) {
+      return message.channel.send("❌ Nothing is playing currently.");
+    }
 
-    if (!guildMemer || !canModifyQueue(guildMemer)) return i18n.__("common.errorNotChannel");
+    if (!canModifyQueue(member!)) {
+      return message.channel.send("❌ You must be in the same voice channel as the bot.");
+    }
 
     queue.loop = !queue.loop;
 
-    const content = i18n.__mf("loop.result", { loop: queue.loop ? i18n.__("common.on") : i18n.__("common.off") });
-
-    safeReply(interaction, content);
+    return message.channel.send({
+      embeds: [
+        new MessageEmbed()
+          .setColor("BLACK")
+          .setDescription(`🔁 Loop is now **${queue.loop ? "ON" : "OFF"}**.`)
+          .setFooter({ text: "﹒𔘓﹒LOVERZ  CAFE﹒| ﹒Chill﹒Social﹒Gws﹒Events" })
+      ]
+    });
   }
 };
