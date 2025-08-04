@@ -1,21 +1,34 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
+import { Message, PermissionsBitField, MessageEmbed } from "discord.js";
 import { bot } from "../index";
-import { i18n } from "../utils/i18n";
 import { canModifyQueue } from "../utils/queue";
-import { safeReply } from "../utils/safeReply";
 
 export default {
-  data: new SlashCommandBuilder().setName("skip").setDescription(i18n.__("skip.description")),
-  execute(interaction: ChatInputCommandInteraction) {
-    const queue = bot.queues.get(interaction.guild!.id);
-    const guildMemer = interaction.guild!.members.cache.get(interaction.user.id);
+  name: "skip",
+  description: "Skips the currently playing song",
+  cooldown: 2,
+  permissions: [PermissionsBitField.Flags.Connect, PermissionsBitField.Flags.Speak],
 
-    if (!queue) return interaction.reply(i18n.__("skip.errorNotQueue")).catch(console.error);
+  async execute(message: Message) {
+    const queue = bot.queues.get(message.guild!.id);
+    const member = message.guild!.members.cache.get(message.author.id);
 
-    if (!canModifyQueue(guildMemer!)) return i18n.__("common.errorNotChannel");
+    if (!queue) {
+      return message.channel.send("❌ No song is currently playing.");
+    }
+
+    if (!canModifyQueue(member!)) {
+      return message.channel.send("❌ You must be in the same voice channel as the bot.");
+    }
 
     queue.player.stop(true);
 
-    safeReply(interaction, i18n.__mf("skip.result", { author: interaction.user.id }));
+    return message.channel.send({
+      embeds: [
+        new MessageEmbed()
+          .setColor("BLACK")
+          .setDescription(`⏭️ Skipped the song.`)
+          .setFooter({ text: "﹒𔘓﹒LOVERZ  CAFE﹒| ﹒Chill﹒Social﹒Gws﹒Events" })
+      ]
+    });
   }
 };
